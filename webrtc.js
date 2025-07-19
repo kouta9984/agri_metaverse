@@ -1,16 +1,11 @@
 let pc;
 let socket;
 let localStream;
-let audio;
 
 function initWebRTC(roomId) {
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(function(stream) {
       localStream = stream;
-
-      audio = new Audio();
-      audio.srcObject = stream;
-      audio.play();
 
       pc = new RTCPeerConnection();
 
@@ -44,7 +39,15 @@ function initWebRTC(roomId) {
       };
 
       socket.onmessage = async (event) => {
-        const msg = JSON.parse(event.data);
+        let data = event.data;
+
+        // Blob を文字列に変換（必要な場合）
+        if (data instanceof Blob) {
+          data = await data.text();
+        }
+
+        const msg = JSON.parse(data);
+
         if (msg.type === "offer") {
           await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
           const answer = await pc.createAnswer();

@@ -35,7 +35,14 @@ function initWebRTC(roomId) {
 
       socket.onopen = () => {
         console.log("WebSocket connected");
-        createOffer();
+
+        // offer/answerの役割を roomId などで決める例
+        // 例えばroomIdの文字列長が偶数ならoffererにする（適宜変えてください）
+        const amOfferer = (roomId.length % 2 === 0);
+
+        if (amOfferer) {
+          createOffer();
+        }
       };
 
       socket.onmessage = async (event) => {
@@ -49,12 +56,25 @@ function initWebRTC(roomId) {
         const msg = JSON.parse(data);
 
         if (msg.type === "offer") {
+          // 安全のため状態チェック
+          if (pc.signalingState !== "stable") {
+            console.warn("Ignoring offer because signalingState is not stable");
+            return;
+          }
+
           await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           socket.send(JSON.stringify({ type: "answer", answer: answer, roomId: roomId }));
+
         } else if (msg.type === "answer") {
+          if (pc.signalingState === "stable") {
+            console.warn("Ignoring answer because signalingState is already stable");
+            return;
+          }
+
           await pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
+
         } else if (msg.type === "candidate") {
           await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
         }

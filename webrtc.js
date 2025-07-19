@@ -36,7 +36,7 @@ function initWebRTC(roomId) {
       };
 
       // WebSocketで接続
-      socket = new WebSocket("ws://localhost:55794");
+      socket = new WebSocket("wss://agri-metaverse.onrender.com");
 
       socket.onopen = () => {
         console.log("WebSocket connected");

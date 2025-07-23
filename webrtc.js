@@ -11,16 +11,19 @@ function initWebRTC(roomId) {
 
       // マイクストリームを追加
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      console.log("Local audio tracks added.");
 
       // 相手から来る音声を再生
       pc.ontrack = (event) => {
+        console.log("Received remote track:", event.streams[0]);
         const remoteAudio = new Audio();
         remoteAudio.srcObject = event.streams[0];
-        remoteAudio.play();
+        remoteAudio.play().catch(e => console.warn("Audio play failed:", e));
       };
 
       // ICE Candidateが見つかったら送信
       pc.onicecandidate = (event) => {
+        console.log("ICE candidate event:", event.candidate);
         if (event.candidate) {
           socket.send(JSON.stringify({
             type: "candidate",
@@ -52,6 +55,8 @@ function initWebRTC(roomId) {
           data = await data.text();
         }
 
+        console.log("WebSocket message received:", data);
+
         const msg = JSON.parse(data);
 
         if (msg.type === "offer") {
@@ -60,9 +65,11 @@ function initWebRTC(roomId) {
             return;
           }
 
+          console.log("Received offer, setting remote description.");
           await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
+          console.log("Sending answer.");
           socket.send(JSON.stringify({ type: "answer", answer: answer, roomId: roomId }));
 
         } else if (msg.type === "answer") {
@@ -71,9 +78,11 @@ function initWebRTC(roomId) {
             return;
           }
 
+          console.log("Received answer, setting remote description.");
           await pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
 
         } else if (msg.type === "candidate") {
+          console.log("Received ICE candidate.");
           await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
         }
       };
@@ -81,6 +90,7 @@ function initWebRTC(roomId) {
       async function createOffer() {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+        console.log("Sending offer.");
         socket.send(JSON.stringify({ type: "offer", offer: offer, roomId: roomId }));
       }
 

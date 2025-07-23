@@ -36,8 +36,7 @@ function initWebRTC(roomId) {
       socket.onopen = () => {
         console.log("WebSocket connected");
 
-        // offer/answerの役割を roomId などで決める例
-        // 例えばroomIdの文字列長が偶数ならoffererにする（適宜変えてください）
+        // 簡易的な Offer/Answer 決定ロジック（適宜調整可能）
         const amOfferer = (roomId.length % 2 === 0);
 
         if (amOfferer) {
@@ -48,7 +47,7 @@ function initWebRTC(roomId) {
       socket.onmessage = async (event) => {
         let data = event.data;
 
-        // Blob を文字列に変換（必要な場合）
+        // Blob 対応
         if (data instanceof Blob) {
           data = await data.text();
         }
@@ -56,9 +55,8 @@ function initWebRTC(roomId) {
         const msg = JSON.parse(data);
 
         if (msg.type === "offer") {
-          // 安全のため状態チェック
           if (pc.signalingState !== "stable") {
-            console.warn("Ignoring offer because signalingState is not stable");
+            console.warn("Ignoring offer because signalingState is not 'stable'");
             return;
           }
 
@@ -68,8 +66,8 @@ function initWebRTC(roomId) {
           socket.send(JSON.stringify({ type: "answer", answer: answer, roomId: roomId }));
 
         } else if (msg.type === "answer") {
-          if (pc.signalingState === "stable") {
-            console.warn("Ignoring answer because signalingState is already stable");
+          if (pc.signalingState !== "have-local-offer") {
+            console.warn("Ignoring answer because signalingState is not 'have-local-offer'");
             return;
           }
 

@@ -25,11 +25,20 @@ function initWebRTC(roomId) {
       pc.onicecandidate = (event) => {
         console.log("ICE candidate event:", event.candidate);
         if (event.candidate) {
-          socket.send(JSON.stringify({
-            type: "candidate",
-            candidate: event.candidate,
-            roomId: roomId
-          }));
+          if (socket.readyState === WebSocket.OPEN) {
+            try {
+              console.log("Sending ICE candidate:", event.candidate);
+              socket.send(JSON.stringify({
+                type: "candidate",
+                candidate: event.candidate,
+                roomId: roomId
+              }));
+            } catch (e) {
+              console.error("WebSocket send error:", e);
+            }
+          } else {
+            console.warn("WebSocket is not open. Cannot send ICE candidate.");
+          }
         }
       };
 
@@ -70,7 +79,15 @@ function initWebRTC(roomId) {
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           console.log("Sending answer.");
-          socket.send(JSON.stringify({ type: "answer", answer: answer, roomId: roomId }));
+          if (socket.readyState === WebSocket.OPEN) {
+            try {
+              socket.send(JSON.stringify({ type: "answer", answer: answer, roomId: roomId }));
+            } catch (e) {
+              console.error("WebSocket send error:", e);
+            }
+          } else {
+            console.warn("WebSocket is not open. Cannot send answer.");
+          }
 
         } else if (msg.type === "answer") {
           if (pc.signalingState !== "have-local-offer") {
@@ -90,8 +107,16 @@ function initWebRTC(roomId) {
       async function createOffer() {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        console.log("Sending offer.");
-        socket.send(JSON.stringify({ type: "offer", offer: offer, roomId: roomId }));
+        if (socket.readyState === WebSocket.OPEN) {
+          try {
+            console.log("Sending offer.");
+            socket.send(JSON.stringify({ type: "offer", offer: offer, roomId: roomId }));
+          } catch (e) {
+            console.error("WebSocket send error:", e);
+          }
+        } else {
+          console.warn("WebSocket is not open. Cannot send offer.");
+        }
       }
 
     }).catch(err => {

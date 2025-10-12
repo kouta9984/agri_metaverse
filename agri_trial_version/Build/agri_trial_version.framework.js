@@ -1976,13 +1976,13 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  3372188: function() {Module['emscripten_get_now_backup'] = performance.now;},  
- 3372243: function($0) {performance.now = function() { return $0; };},  
- 3372291: function($0) {performance.now = function() { return $0; };},  
- 3372339: function() {performance.now = Module['emscripten_get_now_backup'];},  
- 3372394: function() {return Module.webglContextAttributes.premultipliedAlpha;},  
- 3372455: function() {return Module.webglContextAttributes.preserveDrawingBuffer;},  
- 3372519: function() {return Module.webglContextAttributes.powerPreference;}
+  3372476: function() {Module['emscripten_get_now_backup'] = performance.now;},  
+ 3372531: function($0) {performance.now = function() { return $0; };},  
+ 3372579: function($0) {performance.now = function() { return $0; };},  
+ 3372627: function() {performance.now = Module['emscripten_get_now_backup'];},  
+ 3372682: function() {return Module.webglContextAttributes.premultipliedAlpha;},  
+ 3372743: function() {return Module.webglContextAttributes.preserveDrawingBuffer;},  
+ 3372807: function() {return Module.webglContextAttributes.powerPreference;}
 };
 
 
@@ -2128,6 +2128,12 @@ var ASM_CONSTS = {
       var js = jsStackTrace();
       if (Module['extraStackTrace']) js += '\n' + Module['extraStackTrace']();
       return demangleAll(js);
+    }
+
+  function _AgoraInit(appIdPtr) {
+      var appId = UTF8ToString(appIdPtr);
+      window.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      window.appId = appId;
     }
 
   function _GetJSMemoryInfo(totalJSptr, usedJSptr) {
@@ -4667,6 +4673,30 @@ var ASM_CONSTS = {
   
           requestOptions.timeout = timeout;
   	}
+
+  function _JoinChannel(tokenPtr, channelNamePtr, uid) {
+      var token = UTF8ToString(tokenPtr);
+      var channel = UTF8ToString(channelNamePtr);
+  
+      window.agoraClient.join(token, channel, uid).then(() => {
+        console.log("Joined channel:", channel);
+  
+        // ローカル音声を取得して配信
+        AgoraRTC.createMicrophoneAudioTrack().then(track => {
+          window.localTrack = track;
+          window.agoraClient.publish(track);
+        });
+  
+        // リモートトラック受信
+        window.agoraClient.on("user-published", async (user, mediaType) => {
+          await window.agoraClient.subscribe(user, mediaType);
+          if (mediaType === "audio") {
+            const audioTrack = user.audioTrack;
+            audioTrack.play();
+          }
+        });
+      });
+    }
 
   var webSocketInstances = [];
   function _SocketClose(socketInstance)
@@ -15927,6 +15957,7 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
 }
 var asmLibraryArg = {
+  "AgoraInit": _AgoraInit,
   "GetJSMemoryInfo": _GetJSMemoryInfo,
   "JS_Accelerometer_IsRunning": _JS_Accelerometer_IsRunning,
   "JS_Accelerometer_Start": _JS_Accelerometer_Start,
@@ -16010,6 +16041,7 @@ var asmLibraryArg = {
   "JS_WebRequest_SetRedirectLimit": _JS_WebRequest_SetRedirectLimit,
   "JS_WebRequest_SetRequestHeader": _JS_WebRequest_SetRequestHeader,
   "JS_WebRequest_SetTimeout": _JS_WebRequest_SetTimeout,
+  "JoinChannel": _JoinChannel,
   "SocketClose": _SocketClose,
   "SocketCreate": _SocketCreate,
   "SocketError": _SocketError,
@@ -16818,6 +16850,12 @@ var dynCall_jiiiii = Module["dynCall_jiiiii"] = createExportWrapper("dynCall_jii
 var dynCall_viiji = Module["dynCall_viiji"] = createExportWrapper("dynCall_viiji");
 
 /** @type {function(...*):?} */
+var dynCall_vifiiii = Module["dynCall_vifiiii"] = createExportWrapper("dynCall_vifiiii");
+
+/** @type {function(...*):?} */
+var dynCall_fifii = Module["dynCall_fifii"] = createExportWrapper("dynCall_fifii");
+
+/** @type {function(...*):?} */
 var dynCall_ifiiii = Module["dynCall_ifiiii"] = createExportWrapper("dynCall_ifiiii");
 
 /** @type {function(...*):?} */
@@ -17208,9 +17246,6 @@ var dynCall_vifiiiiii = Module["dynCall_vifiiiiii"] = createExportWrapper("dynCa
 var dynCall_ffii = Module["dynCall_ffii"] = createExportWrapper("dynCall_ffii");
 
 /** @type {function(...*):?} */
-var dynCall_fifii = Module["dynCall_fifii"] = createExportWrapper("dynCall_fifii");
-
-/** @type {function(...*):?} */
 var dynCall_vifffii = Module["dynCall_vifffii"] = createExportWrapper("dynCall_vifffii");
 
 /** @type {function(...*):?} */
@@ -17242,9 +17277,6 @@ var dynCall_viifffffffi = Module["dynCall_viifffffffi"] = createExportWrapper("d
 
 /** @type {function(...*):?} */
 var dynCall_viiffffffffi = Module["dynCall_viiffffffffi"] = createExportWrapper("dynCall_viiffffffffi");
-
-/** @type {function(...*):?} */
-var dynCall_vifiiii = Module["dynCall_vifiiii"] = createExportWrapper("dynCall_vifiiii");
 
 /** @type {function(...*):?} */
 var dynCall_vidiii = Module["dynCall_vidiii"] = createExportWrapper("dynCall_vidiii");

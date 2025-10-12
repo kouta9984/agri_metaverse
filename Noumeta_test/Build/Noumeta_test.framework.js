@@ -4675,19 +4675,18 @@ var ASM_CONSTS = {
   	}
 
   function _JoinChannel(tokenPtr, channelNamePtr, uid) {
-      var token = UTF8ToString(tokenPtr);
+      var tokenStr = UTF8ToString(tokenPtr);
+      var token = (tokenStr === "" || tokenStr === "null") ? null : tokenStr; // ←ここで変換
       var channel = UTF8ToString(channelNamePtr);
   
       window.agoraClient.join(token, channel, uid).then(() => {
         console.log("Joined channel:", channel);
   
-        // ローカル音声を取得して配信
         AgoraRTC.createMicrophoneAudioTrack().then(track => {
           window.localTrack = track;
           window.agoraClient.publish(track);
         });
   
-        // リモートトラック受信
         window.agoraClient.on("user-published", async (user, mediaType) => {
           await window.agoraClient.subscribe(user, mediaType);
           if (mediaType === "audio") {

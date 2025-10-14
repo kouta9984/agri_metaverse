@@ -3,14 +3,14 @@ var agoraClient = null;
 var localTrack = null;
 
 var options = {
-    appid: "aebc8c485f7d4777b8e4bcb6760da56a",
-    channel: "test",
+    appid: "a7801a2eaab24a7e9c1a0a0ff2593682",
+    channel: "testserver", // テスト用チャンネル
     uid: null,
-    token: "007eJxTYFh1N+b+sTcLc+O5lj8SZt27WZFx5YR99dEzkyfk5Fx0Y89XYEhMTUq2SDaxME0zTzExNzdPskg1SUpOMjM3M0hJNDVLdFd7l9EQyMjwdQcHKyMDBIL4LAwlqcUlDAwAm1IgaQ=="
+    token: null
 };
 
 function joinAgoraChannel() {
-    console.log("joinAgoraChannel called");
+    console.log("joinAgoraChannel called testserver");
 
     if (!agoraClient) {
         agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });

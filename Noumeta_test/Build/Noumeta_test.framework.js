@@ -2153,8 +2153,10 @@ var ASM_CONSTS = {
       el.type = inputId === "passwordInput" ? "password" : "text";
       el.id = inputId;
       el.style.position = 'absolute';
-      el.style.top = '-100px';
+      el.style.top = '0';              // ← 一瞬だけ画面上に配置
       el.style.left = '0';
+      el.style.width = '1px';
+      el.style.height = '1px';
       el.style.opacity = '0';
       el.style.zIndex = '-1';
       document.body.appendChild(el);
@@ -2162,12 +2164,13 @@ var ASM_CONSTS = {
       // ---- focus イベント（1回だけ登録） ----
       el.addEventListener('focus', (e) => {
         e.preventDefault();
-        // モバイルのスクロールズレ防止
         setTimeout(() => window.scrollTo(0, 0), 0);
       }, { once: true });
   
-      // ---- キーボード呼び出し ----
-      el.focus({ preventScroll: true });
+      // ---- 一瞬だけ画面に出してからフォーカス（Android対応） ----
+      setTimeout(() => {
+        el.focus({ preventScroll: true });
+      }, 50);
   
       // ---- 入力時にUnityへ送信 ----
       el.oninput = function () {

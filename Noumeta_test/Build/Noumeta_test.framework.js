@@ -1976,13 +1976,13 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  3391788: function() {Module['emscripten_get_now_backup'] = performance.now;},  
- 3391843: function($0) {performance.now = function() { return $0; };},  
- 3391891: function($0) {performance.now = function() { return $0; };},  
- 3391939: function() {performance.now = Module['emscripten_get_now_backup'];},  
- 3391994: function() {return Module.webglContextAttributes.premultipliedAlpha;},  
- 3392055: function() {return Module.webglContextAttributes.preserveDrawingBuffer;},  
- 3392119: function() {return Module.webglContextAttributes.powerPreference;}
+  3391772: function() {Module['emscripten_get_now_backup'] = performance.now;},  
+ 3391827: function($0) {performance.now = function() { return $0; };},  
+ 3391875: function($0) {performance.now = function() { return $0; };},  
+ 3391923: function() {performance.now = Module['emscripten_get_now_backup'];},  
+ 3391978: function() {return Module.webglContextAttributes.premultipliedAlpha;},  
+ 3392039: function() {return Module.webglContextAttributes.preserveDrawingBuffer;},  
+ 3392103: function() {return Module.webglContextAttributes.powerPreference;}
 };
 
 
@@ -2140,55 +2140,6 @@ var ASM_CONSTS = {
               console.error("joinAgoraChannel 関数が定義されていません");
           }
       }
-
-  function _FocusInput(inputIdPtr) {
-      var inputId = UTF8ToString(inputIdPtr);
-  
-      // 既に存在してたら削除（保険）
-      var oldEl = document.getElementById(inputId);
-      if (oldEl) oldEl.remove();
-  
-      // ---- 入力欄生成 ----
-      var el = document.createElement('input');
-      el.type = inputId === "passwordInput" ? "password" : "text";
-      el.id = inputId;
-      el.style.position = 'absolute';
-      el.style.top = '0';              // ← 一瞬だけ画面上に配置
-      el.style.left = '0';
-      el.style.width = '1px';
-      el.style.height = '1px';
-      el.style.opacity = '0';
-      el.style.zIndex = '-1';
-      document.body.appendChild(el);
-  
-      // ---- focus イベント（1回だけ登録） ----
-      el.addEventListener('focus', (e) => {
-        e.preventDefault();
-        setTimeout(() => window.scrollTo(0, 0), 0);
-      }, { once: true });
-  
-      // ---- 一瞬だけ画面に出してからフォーカス（Android対応） ----
-      setTimeout(() => {
-        el.focus({ preventScroll: true });
-      }, 50);
-  
-      // ---- 入力時にUnityへ送信 ----
-      el.oninput = function () {
-        if (window.unityInstance) {
-          let unityObjectName =
-            inputId === "avatarInput" ? "avatar_input" :
-            inputId === "passwordInput" ? "password_input" : "";
-          if (unityObjectName) {
-            window.unityInstance.SendMessage(unityObjectName, "OnInputComplete", el.value);
-          }
-        }
-      };
-  
-      // ---- フォーカス外れ時に削除 ----
-      el.onblur = function () {
-        setTimeout(() => el.remove(), 100);
-      };
-    }
 
   function _GetJSMemoryInfo(totalJSptr, usedJSptr) {
       if (performance.memory) {
@@ -4793,6 +4744,51 @@ var ASM_CONSTS = {
       var socket = webSocketInstances[socketInstance];
       return socket.socket.readyState;
   }
+
+  function _StartQRCodeScan() {
+      console.log("StartQRCodeScan called!");
+  
+      // html5-qrcode を利用する場合の例
+      if (!window.html5QrCode) {
+        console.warn("html5-qrcode not loaded");
+        return;
+      }
+  
+      // スキャン領域を作成（画面に DOM を追加）
+      let qrRegionId = "qr-scanner";
+      let oldEl = document.getElementById(qrRegionId);
+      if (oldEl) oldEl.remove();
+  
+      let qrEl = document.createElement("div");
+      qrEl.id = qrRegionId;
+      qrEl.style.position = "absolute";
+      qrEl.style.top = "0";
+      qrEl.style.left = "0";
+      qrEl.style.width = "100%";
+      qrEl.style.height = "100%";
+      qrEl.style.zIndex = "1000";
+      document.body.appendChild(qrEl);
+  
+      // html5-qrcode インスタンス作成
+      window.html5QrCode = new Html5Qrcode(qrRegionId);
+      const qrConfig = { fps: 10, qrbox: 250 };
+  
+      window.html5QrCode.start(
+        { facingMode: "environment" },
+        qrConfig,
+        (decodedText, decodedResult) => {
+          console.log("QRコード読み取り:", decodedText);
+          if (window.unityInstance) {
+            window.unityInstance.SendMessage("QRCodeManager", "OnQRCodeScanned", decodedText);
+          }
+          // 読み取り完了したら停止してDOM削除
+          window.html5QrCode.stop().then(() => qrEl.remove());
+        },
+        (errorMessage) => {
+          // 読み取り失敗は無視
+        }
+      ).catch(err => console.error(err));
+    }
 
   function _ThirdwebConnect(taskId, cb) {
       // convert taskId from pointer to str and allocate it to keep in memory
@@ -15986,7 +15982,6 @@ function checkIncomingModuleAPI() {
 }
 var asmLibraryArg = {
   "CallExternalJS": _CallExternalJS,
-  "FocusInput": _FocusInput,
   "GetJSMemoryInfo": _GetJSMemoryInfo,
   "JS_Accelerometer_IsRunning": _JS_Accelerometer_IsRunning,
   "JS_Accelerometer_Start": _JS_Accelerometer_Start,
@@ -16075,6 +16070,7 @@ var asmLibraryArg = {
   "SocketError": _SocketError,
   "SocketSend": _SocketSend,
   "SocketState": _SocketState,
+  "StartQRCodeScan": _StartQRCodeScan,
   "ThirdwebConnect": _ThirdwebConnect,
   "ThirdwebInitialize": _ThirdwebInitialize,
   "ThirdwebInvoke": _ThirdwebInvoke,

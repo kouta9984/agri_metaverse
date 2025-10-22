@@ -98,7 +98,33 @@
           }).catch((message) => alert(message));
       };
       document.body.appendChild(script);
-
     </script>
+    
+    
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+      function startQRScan() {
+        const qr = new Html5Qrcode("reader");
+        qr.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          (decodedText) => {
+            console.log("QRコード内容:", decodedText);
+            if (window.unityInstance) {
+              window.unityInstance.SendMessage("QRManager", "OnQRScanned", decodedText);
+            }
+            qr.stop();
+          },
+          (errorMessage) => {
+            console.log(errorMessage);
+          }
+        );
+      }
+    </script>    
+    
+    <div id="qr-reader" style="width:300px;height:300px; display:none;"></div>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    
   </body>
 </html>

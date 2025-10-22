@@ -1976,13 +1976,13 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  3391772: function() {Module['emscripten_get_now_backup'] = performance.now;},  
- 3391827: function($0) {performance.now = function() { return $0; };},  
- 3391875: function($0) {performance.now = function() { return $0; };},  
- 3391923: function() {performance.now = Module['emscripten_get_now_backup'];},  
- 3391978: function() {return Module.webglContextAttributes.premultipliedAlpha;},  
- 3392039: function() {return Module.webglContextAttributes.preserveDrawingBuffer;},  
- 3392103: function() {return Module.webglContextAttributes.powerPreference;}
+  3391788: function() {Module['emscripten_get_now_backup'] = performance.now;},  
+ 3391843: function($0) {performance.now = function() { return $0; };},  
+ 3391891: function($0) {performance.now = function() { return $0; };},  
+ 3391939: function() {performance.now = Module['emscripten_get_now_backup'];},  
+ 3391994: function() {return Module.webglContextAttributes.premultipliedAlpha;},  
+ 3392055: function() {return Module.webglContextAttributes.preserveDrawingBuffer;},  
+ 3392119: function() {return Module.webglContextAttributes.powerPreference;}
 };
 
 
@@ -4748,14 +4748,13 @@ var ASM_CONSTS = {
   function _StartQRCodeScan() {
       console.log("StartQRCodeScan called!");
   
-      // html5-qrcode を利用する場合の例
-      if (!window.html5QrCode) {
+      if (typeof Html5Qrcode === "undefined") {
         console.warn("html5-qrcode not loaded");
         return;
       }
   
       // スキャン領域を作成（画面に DOM を追加）
-      let qrRegionId = "qr-scanner";
+      let qrRegionId = "reader";
       let oldEl = document.getElementById(qrRegionId);
       if (oldEl) oldEl.remove();
   
@@ -4779,7 +4778,7 @@ var ASM_CONSTS = {
         (decodedText, decodedResult) => {
           console.log("QRコード読み取り:", decodedText);
           if (window.unityInstance) {
-            window.unityInstance.SendMessage("QRCodeManager", "OnQRCodeScanned", decodedText);
+            window.unityInstance.SendMessage("Canvas", "OnQRCodeScanned", decodedText);
           }
           // 読み取り完了したら停止してDOM削除
           window.html5QrCode.stop().then(() => qrEl.remove());

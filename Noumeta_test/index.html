@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
+    <div id="reader" style="width:300px;height:300px;"></div>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="AgoraRTC_N-4.24.0.js"></script>
     <script src="AgoraWeb.js"></script>
     <meta charset="utf-8" />
@@ -101,30 +103,28 @@
     </script>
     
     
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-      function startQRScan() {
+    function startQRScan() {
+        // HTML 側で <div id="reader"></div> を作っているならこの行は不要
         const qr = new Html5Qrcode("reader");
+    
         qr.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: 250 },
-          (decodedText) => {
-            console.log("QRコード内容:", decodedText);
-            if (window.unityInstance) {
-              window.unityInstance.SendMessage("QRManager", "OnQRScanned", decodedText);
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            (decodedText) => {
+                console.log("QRコード内容:", decodedText);
+                if (window.unityInstance) {
+                    window.unityInstance.SendMessage("Canvas", "OnQRCodeScanned", decodedText);
+                }
+                qr.stop();
+            },
+            (errorMessage) => {
+                console.log(errorMessage);
             }
-            qr.stop();
-          },
-          (errorMessage) => {
-            console.log(errorMessage);
-          }
         );
-      }
-    </script>    
-    
-    <div id="qr-reader" style="width:300px;height:300px; display:none;"></div>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    }
+    </script>
+   
 
-    
   </body>
 </html>

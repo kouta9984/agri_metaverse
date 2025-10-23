@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <div id="reader" style="width:300px;height:300px;"></div>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="AgoraRTC_N-4.24.0.js"></script>
-    <script src="AgoraWeb.js"></script>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>agri_metaverse2</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico" />
     <link rel="stylesheet" href="TemplateData/style.css" />
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="AgoraRTC_N-4.24.0.js"></script>
+    <script src="AgoraWeb.js"></script>
     <style>
       input, textarea { font-size: 16px; }
       #loading-cover {
@@ -25,12 +24,45 @@
       }
       #unity-logo img { max-width: 50%; height: auto; }
       .spinner { margin-top: 20px; }
+      
+      #unity-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      }
+
+      /* ✅ QRスキャナーの位置調整 */
+      #reader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 9999; /* Unityキャンバスより上 */
+        background-color: rgba(0,0,0,0.8); /* 半透明の黒背景で見やすく */
+        display: none; /* 初期は非表示 */
+      }
+      
+      #reader video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }      
     </style>
   </head>
+
   <body class="dark">
+    <!-- Unityの描画領域 -->
     <div id="unity-container" class="unity-desktop">
       <canvas id="unity-canvas"></canvas>
     </div>
+
+    <!-- QRスキャナー表示領域（Unityの上に重なる） -->
+    <div id="reader"></div>
 
     <div id="loading-cover" style="display: none">
       <div id="unity-loading-bar">
@@ -101,30 +133,30 @@
       };
       document.body.appendChild(script);
     </script>
-    
-    
-    <script>
-    function startQRScan() {
-        // HTML 側で <div id="reader"></div> を作っているならこの行は不要
-        const qr = new Html5Qrcode("reader");
-    
-        qr.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
-            (decodedText) => {
-                console.log("QRコード内容:", decodedText);
-                if (window.unityInstance) {
-                    window.unityInstance.SendMessage("Canvas", "OnQRCodeScanned", decodedText);
-                }
-                qr.stop();
-            },
-            (errorMessage) => {
-                console.log(errorMessage);
-            }
-        );
-    }
-    </script>
-   
 
+    <script>
+      function startQRScan() {
+        const qrDiv = document.getElementById("reader");
+        qrDiv.style.display = "block"; // 表示
+
+        const qr = new Html5Qrcode("reader");
+        qr.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          (decodedText) => {
+            console.log("QRコード内容:", decodedText);
+            if (window.unityInstance) {
+              window.unityInstance.SendMessage("Canvas", "OnQRCodeScanned", decodedText);
+            }
+            qr.stop().then(() => {
+              qrDiv.style.display = "none"; // スキャン後に非表示
+            });
+          },
+          (errorMessage) => {
+            console.log(errorMessage);
+          }
+        );
+      }
+    </script>
   </body>
 </html>

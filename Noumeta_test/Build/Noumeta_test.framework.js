@@ -4766,6 +4766,7 @@ var ASM_CONSTS = {
       qrEl.style.width = "100%";
       qrEl.style.height = "100%";
       qrEl.style.zIndex = "1000";
+      qrEl.style.display = "block";
       document.body.appendChild(qrEl);
   
       // html5-qrcode インスタンス作成

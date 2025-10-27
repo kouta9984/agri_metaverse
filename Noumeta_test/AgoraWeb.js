@@ -1,16 +1,75 @@
-// グローバル変数
+// ==========================
+// 💡 グローバル変数
+// ==========================
 var agoraClient = null;
 var localTrack = null;
-var isVoiceEnabled = false; // 現在の状態
+var isVoiceEnabled = false;
 
 var options = {
     appid: "a7801a2eaab24a7e9c1a0a0ff2593682",
-    channel: "testserver", // テスト用チャンネル
+    channel: "testserver",
     uid: null,
     token: null
 };
 
-// Agora接続
+// ==========================
+// 💡 Unityから呼ばれる関数を先に定義（安全）
+// ==========================
+window.toggleAgoraVoice = async function() {
+    const label = document.getElementById("voice-status");
+
+    if (!isVoiceEnabled) {
+        // オンにする
+        if (!localTrack) {
+            try {
+                const track = await joinAgoraChannel();
+                localTrack = track;
+                await agoraClient.publish(localTrack);
+                console.log("Published local audio track");
+            } catch (err) {
+                console.error("Failed to join or publish:", err);
+                return;
+            }
+
+            agoraClient.on("user-published", async (user, mediaType) => {
+                await agoraClient.subscribe(user, mediaType);
+                console.log("Subscribed to user:", user.uid, "mediaType:", mediaType);
+                if (mediaType === "audio") user.audioTrack.play();
+            });
+        } else {
+            localTrack.setEnabled(true);
+            console.log("Voice ON");
+        }
+
+        // 🔸 表示をONに変更
+        if (label) {
+            label.textContent = "ON";
+            label.style.background = "rgba(0, 150, 0, 0.7)";
+            label.style.animation = "glowOn 1s ease";
+        }
+
+        isVoiceEnabled = true;
+    } else {
+        // オフにする
+        if (localTrack) {
+            localTrack.setEnabled(false);
+            console.log("Voice OFF");
+        }
+
+        // 🔸 表示をOFFに変更
+        if (label) {
+            label.textContent = "OFF";
+            label.style.background = "rgba(150, 0, 0, 0.7)";
+            label.style.animation = "none";
+        }
+
+        isVoiceEnabled = false;
+    }
+};
+
+// ==========================
+// 💡 Agora接続
+// ==========================
 function joinAgoraChannel() {
     console.log("joinAgoraChannel called testserver");
 
@@ -27,7 +86,7 @@ function joinAgoraChannel() {
 }
 
 // ==========================
-// 💡 表示エリアを作成（HTMLに自動追加）
+// 💡 表示ラベルを作成（HTMLに自動追加）
 // ==========================
 (function setupVoiceLabel() {
     if (!document.getElementById("voice-status")) {
@@ -59,51 +118,3 @@ function joinAgoraChannel() {
     `;
     document.head.appendChild(style);
 })();
-
-window.toggleAgoraVoice = async function() {
-    const label = document.getElementById("voice-status");
-
-    if (!isVoiceEnabled) {
-        // オンにする
-        if (!localTrack) {
-            try {
-                const track = await joinAgoraChannel();
-                localTrack = track;
-                await agoraClient.publish(localTrack);
-                console.log("Published local audio track");
-            } catch (err) {
-                console.error("Failed to join or publish:", err);
-                return;
-            }
-
-            agoraClient.on("user-published", async (user, mediaType) => {
-                await agoraClient.subscribe(user, mediaType);
-                console.log("Subscribed to user:", user.uid, "mediaType:", mediaType);
-                if (mediaType === "audio") user.audioTrack.play();
-            });
-        } else {
-            localTrack.setEnabled(true);
-            console.log("Voice ON");
-        }
-
-        // 🔸 表示をONに変更
-        label.textContent = "ON";
-        label.style.background = "rgba(0, 150, 0, 0.7)";
-        label.style.animation = "glowOn 1s ease";
-
-        isVoiceEnabled = true;
-    } else {
-        // オフにする
-        if (localTrack) {
-            localTrack.setEnabled(false);
-            console.log("Voice OFF");
-        }
-
-        // 🔸 表示をOFFに変更
-        label.textContent = "OFF";
-        label.style.background = "rgba(150, 0, 0, 0.7)";
-        label.style.animation = "none";
-
-        isVoiceEnabled = false;
-    }
-};

@@ -13,7 +13,23 @@ var options = {
 };
 
 // ==========================
-// 💡 Unityから呼ばれる関数を先に定義（安全）
+// 💡 Agoraクライアント初期化（user-publishedを先に登録）
+// ==========================
+function initAgoraClient() {
+    if (!agoraClient) {
+        agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+        // 他ユーザーの音声を常に受信
+        agoraClient.on("user-published", async (user, mediaType) => {
+            await agoraClient.subscribe(user, mediaType);
+            console.log("Subscribed to user:", user.uid, "mediaType:", mediaType);
+            if (mediaType === "audio") user.audioTrack.play();
+        });
+    }
+}
+
+// ==========================
+// 💡 Unityから呼ばれる関数（ON/OFF切り替え）
 // ==========================
 window.toggleAgoraVoice = async function() {
     const label = document.getElementById("voice-status");
@@ -22,26 +38,17 @@ window.toggleAgoraVoice = async function() {
         // オンにする
         if (!localTrack) {
             try {
-                const track = await joinAgoraChannel();
-                localTrack = track;
-                await agoraClient.publish(localTrack);
-                console.log("Published local audio track");
+                await joinAgoraChannel();
             } catch (err) {
                 console.error("Failed to join or publish:", err);
                 return;
             }
-
-            agoraClient.on("user-published", async (user, mediaType) => {
-                await agoraClient.subscribe(user, mediaType);
-                console.log("Subscribed to user:", user.uid, "mediaType:", mediaType);
-                if (mediaType === "audio") user.audioTrack.play();
-            });
         } else {
             localTrack.setEnabled(true);
             console.log("Voice ON");
         }
 
-        // 🔸 表示をONに変更
+        // 🔸 表示ON
         if (label) {
             label.textContent = "ON";
             label.style.background = "rgba(0, 150, 0, 0.7)";
@@ -56,7 +63,7 @@ window.toggleAgoraVoice = async function() {
             console.log("Voice OFF");
         }
 
-        // 🔸 表示をOFFに変更
+        // 🔸 表示OFF
         if (label) {
             label.textContent = "OFF";
             label.style.background = "rgba(150, 0, 0, 0.7)";
@@ -68,21 +75,22 @@ window.toggleAgoraVoice = async function() {
 };
 
 // ==========================
-// 💡 Agora接続
+// 💡 Agoraに参加してマイクをpublish
 // ==========================
-function joinAgoraChannel() {
-    console.log("joinAgoraChannel called testserver");
+async function joinAgoraChannel() {
+    initAgoraClient();
 
-    if (!agoraClient) {
-        agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    const uid = await agoraClient.join(options.appid, options.channel, options.token || null);
+    options.uid = uid;
+    console.log("Joined channel, UID:", uid);
+
+    if (!localTrack) {
+        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await agoraClient.publish(localTrack);
+        console.log("Published local audio track");
     }
 
-    return agoraClient.join(options.appid, options.channel, options.token || null).then(uid => {
-        options.uid = uid;
-        console.log("Joined channel, UID:", uid);
-
-        return AgoraRTC.createMicrophoneAudioTrack();
-    });
+    return localTrack;
 }
 
 // ==========================

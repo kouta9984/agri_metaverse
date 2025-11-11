@@ -3,18 +3,67 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no"
-    />
-    <title>testt</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>agri_metaverse2</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico" />
     <link rel="stylesheet" href="TemplateData/style.css" />
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="AgoraRTC_N-4.24.0.js"></script>
+    <script src="AgoraWeb.js"></script>
+    <style>
+      input, textarea { font-size: 16px; }
+      #loading-cover {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      #unity-logo img { max-width: 50%; height: auto; }
+      .spinner { margin-top: 20px; }
+      
+      #unity-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      }
+
+      /* ✅ QRスキャナーの位置調整 */
+      #reader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 9999; /* Unityキャンバスより上 */
+        background-color: rgba(0,0,0,0.8); /* 半透明の黒背景で見やすく */
+        display: none; /* 初期は非表示 */
+      }
+      
+      #reader video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }      
+    </style>
   </head>
+
   <body class="dark">
+    <!-- Unityの描画領域 -->
     <div id="unity-container" class="unity-desktop">
       <canvas id="unity-canvas"></canvas>
     </div>
+
+    <!-- QRスキャナー表示領域（Unityの上に重なる） -->
+    <div id="reader"></div>
+
     <div id="loading-cover" style="display: none">
       <div id="unity-loading-bar">
         <div id="unity-logo"><img src="logo.png" /></div>
@@ -24,78 +73,90 @@
         <div class="spinner"></div>
       </div>
     </div>
+
     <div id="unity-fullscreen-button" style="display: none"></div>
-    <!-- <script
-      src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"
-      type="application/javascript"
-    ></script> -->
-    <!-- <script src="thirdweb.js" type="module"></script> -->
+
     <script type="module">
-            const hideFullScreenButton = "";
-            const buildUrl = "Build";
-            const loaderUrl = buildUrl + "/agri_trial_version.loader.js";
-            const config = {
-              dataUrl: buildUrl + "/agri_trial_version.data",
-              frameworkUrl: buildUrl + "/agri_trial_version.framework.js",
-              codeUrl: buildUrl + "/agri_trial_version.wasm",
-              streamingAssetsUrl: "StreamingAssets",
-              companyName: "DefaultCompany",
-              productName: "testt",
-              productVersion: "0.1",
-            };
+      const hideFullScreenButton = "";
+      const buildUrl = "Build";
+      const loaderUrl = buildUrl + "/Noumeta_trial.loader.js";
+      const config = {
+        dataUrl: buildUrl + "/Noumeta_trial.data",
+        frameworkUrl: buildUrl + "/Noumeta_trial.framework.js",
+        codeUrl: buildUrl + "/Noumeta_trial.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "agri_metaverse2",
+        productVersion: "0.1",
+      };
 
-            const container = document.querySelector("#unity-container");
-            const canvas = document.querySelector("#unity-canvas");
-            const loadingCover = document.querySelector("#loading-cover");
-            const progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
-            const progressBarFull = document.querySelector("#unity-progress-bar-full");
-            const fullscreenButton = document.querySelector("#unity-fullscreen-button");
-            const spinner = document.querySelector('.spinner');
+      const container = document.querySelector("#unity-container");
+      const canvas = document.querySelector("#unity-canvas");
+      const loadingCover = document.querySelector("#loading-cover");
+      const progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
+      const progressBarFull = document.querySelector("#unity-progress-bar-full");
+      const fullscreenButton = document.querySelector("#unity-fullscreen-button");
+      const spinner = document.querySelector('.spinner');
 
-            const canFullscreen = (function() {
-              for (const key of [
-                  'exitFullscreen',
-                  'webkitExitFullscreen',
-                  'webkitCancelFullScreen',
-                  'mozCancelFullScreen',
-                  'msExitFullscreen',
-                ]) {
-                if (key in document) {
-                  return true;
-                }
+      const canFullscreen = (function() {
+        for (const key of [
+            'exitFullscreen', 'webkitExitFullscreen',
+            'webkitCancelFullScreen', 'mozCancelFullScreen', 'msExitFullscreen',
+          ]) {
+          if (key in document) return true;
+        }
+        return false;
+      }());
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        container.className = "unity-mobile";
+        config.devicePixelRatio = 1;
+      }
+
+      loadingCover.style.display = "";
+
+      const script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+          createUnityInstance(canvas, config, (progress) => {
+              spinner.style.display = "none";
+              progressBarEmpty.style.display = "";
+              progressBarFull.style.width = `${100 * progress}%`;
+          }).then((unityInstance) => {
+              window.unityInstance = unityInstance;
+              loadingCover.style.display = "none";
+              if (canFullscreen) {
+                  if (!hideFullScreenButton) fullscreenButton.style.display = "";
+                  fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
               }
-              return false;
-            }());
+          }).catch((message) => alert(message));
+      };
+      document.body.appendChild(script);
+    </script>
 
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-              container.className = "unity-mobile";
-              config.devicePixelRatio = 1;
+    <script>
+      function startQRScan() {
+        const qrDiv = document.getElementById("reader");
+        qrDiv.style.display = "block"; // 表示
+
+        const qr = new Html5Qrcode("reader");
+        qr.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          (decodedText) => {
+            console.log("QRコード内容:", decodedText);
+            if (window.unityInstance) {
+              window.unityInstance.SendMessage("Canvas", "OnQRCodeScanned", decodedText);
             }
-            loadingCover.style.display = "";
-            const script = document.createElement("script");
-            script.src = loaderUrl;
-            script.onload = () => {
-              import('./lib/thirdweb.js').then(module => {
-                createUnityInstance(canvas, config, (progress) => {
-                  spinner.style.display = "none";
-                  progressBarEmpty.style.display = "";
-                  progressBarFull.style.width = `${100 * progress}%`;
-                }).then((unityInstance) => {
-                  loadingCover.style.display = "none";
-                  if (canFullscreen) {
-                    if (!hideFullScreenButton) {
-                      fullscreenButton.style.display = "";
-                    }
-                    fullscreenButton.onclick = () => {
-                      unityInstance.SetFullscreen(1);
-                    };
-                  }
-                }).catch((message) => {
-                  alert(message);
-                });
-              });
-            };
-            document.body.appendChild(script);
+            qr.stop().then(() => {
+              qrDiv.style.display = "none"; // スキャン後に非表示
+            });
+          },
+          (errorMessage) => {
+            console.log(errorMessage);
+          }
+        );
+      }
     </script>
   </body>
 </html>
